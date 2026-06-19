@@ -4,7 +4,7 @@ ServiceHub is a full-stack web application where users can browse services, book
 
 ## Links
    - Github repo link:
-   - Vercel link:
+   - Vercel link:https://servicebookingplatformw7.vercel.app/
    - Render link:https://service-booking-platform-w7.onrender.com
 
 ## Screenshots
