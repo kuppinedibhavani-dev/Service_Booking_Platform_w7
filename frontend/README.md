@@ -3,12 +3,12 @@
 ServiceHub is a full-stack web application where users can browse services, book appointments, make secure payments, and manage bookings. The platform includes user authentication, payment integration, notifications, profile management, admin dashboard, and provider dashboard.
 
 ## Links
-   - Github repo link:
+   - Github repo link:https://github.com/kuppinedibhavani-dev/Service_Booking_Platform_w7
    - Vercel link:https://servicebookingplatformw7.vercel.app/
    - Render link:https://service-booking-platform-w7.onrender.com
 
 ## Screenshots
-   -Home Page:
+   -Home Page:![alt text](image.png)
    -Service Details:
    -Booking Page:
    -Payment Page:
