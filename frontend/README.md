@@ -9,12 +9,12 @@ ServiceHub is a full-stack web application where users can browse services, book
 
 ## Screenshots
    -Home Page:![alt text](image.png)
-   -Service Details:
-   -Booking Page:
-   -Payment Page:
-   -Profile Page:
-   -Notifications Page:
-   -Admin Dashboard:
+   -Service Details:![alt text](image-1.png)
+   -Booking Page:![alt text](image-2.png)
+   -Payment Page:![alt text](image-3.png)
+   -Profile Page:![alt text](image-4.png)
+   -Notifications Page:![alt text](image-5.png)
+
 
 
 ## Features
