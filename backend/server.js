@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const bookingRoutes = require("./routes/bookingRoutes");
+const testRoutes = require("./routes/testRoutes");
 
 dotenv.config();
 connectDB();
@@ -22,6 +23,7 @@ app.use("/api/services", require("./routes/serviceRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/test", testRoutes);
 
 app.get("/", (req, res) => {
   res.send("Service Booking API Running");
