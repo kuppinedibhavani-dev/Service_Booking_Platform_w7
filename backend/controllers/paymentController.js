@@ -1,22 +1,23 @@
 const Payment = require("../models/Payment");
 const Booking = require("../models/Booking");
-const mongoose = require("mongoose");
-
-// Create Payment
 const Notification = require("../models/Notification");
-
 const Razorpay = require("razorpay");
+const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
+// Create Payment Order
 const createPayment = async (req, res) => {
   try {
     const { bookingId } = req.body;
 
-    const booking = await Booking.findById(bookingId).populate("serviceId");
+    const booking = await Booking.findById(bookingId)
+      .populate("serviceId")
+      .populate("userId");
 
     if (!booking) {
       return res.status(404).json({
@@ -32,11 +33,21 @@ const createPayment = async (req, res) => {
 
     const order = await razorpay.orders.create(options);
 
-    res.json({
+    // Create payment record (Pending)
+    await Payment.create({
+      bookingId,
+      userId: booking.userId._id,
+      amount: booking.totalAmount,
+      paymentMethod: "Razorpay",
+      paymentStatus: "Pending"
+    });
+
+    res.status(200).json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency
     });
+
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -44,12 +55,7 @@ const createPayment = async (req, res) => {
   }
 };
 
-module.exports = {
-  createPayment
-};
-
-const crypto = require("crypto");
-
+// Verify Payment
 const verifyPayment = async (req, res) => {
   try {
     const {
@@ -72,25 +78,37 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    // Update payment
-    await Payment.findOneAndUpdate(
+    // Update payment record
+    const payment = await Payment.findOneAndUpdate(
       { bookingId },
       {
         paymentStatus: "Success"
-      }
-    );
+      },
+      { new: true }
+    ).populate("userId");
 
     // Confirm booking
-    await Booking.findByIdAndUpdate(bookingId, {
-      status: "Confirmed"
-    });
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      {
+        status: "Confirmed"
+      },
+      { new: true }
+    ).populate("serviceId");
 
-    // Notification
+    // App Notification
     await Notification.create({
-      userId: req.user._id,
-      message: "Payment successful and booking confirmed.",
+      userId: payment.userId._id,
+      message: `Payment successful for ${booking.serviceId.serviceName}. Booking confirmed.`,
       type: "Payment"
     });
+
+    // Email Notification
+    await sendEmail(
+      payment.userId.email,
+      "Payment Successful",
+      `Your payment for ${booking.serviceId.serviceName} was successful and your booking has been confirmed.`
+    );
 
     res.status(200).json({
       message: "Payment verified successfully"
@@ -119,6 +137,7 @@ const getPayment = async (req, res) => {
     }
 
     res.status(200).json(payment);
+
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -128,6 +147,6 @@ const getPayment = async (req, res) => {
 
 module.exports = {
   createPayment,
-  getPayment,
-  verifyPayment
+  verifyPayment,
+  getPayment
 };

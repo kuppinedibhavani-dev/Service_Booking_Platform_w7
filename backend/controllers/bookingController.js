@@ -1,10 +1,10 @@
+const sendEmail = require("../utils/sendEmail");
 const Booking = require("../models/Booking");
 const Service = require("../models/Service");
+const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
 
 // Create Booking
-const Notification = require("../models/Notification");
-
 const createBooking = async (req, res) => {
   try {
     const { serviceId, bookingDate, timeSlot } = req.body;
@@ -17,6 +17,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Check if slot already booked
     const existingBooking = await Booking.findOne({
       serviceId,
       bookingDate,
@@ -30,6 +31,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Create booking
     const booking = await Booking.create({
       userId: req.user._id,
       serviceId,
@@ -39,14 +41,22 @@ const createBooking = async (req, res) => {
       totalAmount: service.price
     });
 
-    // Auto Notification
+    // App Notification
     await Notification.create({
       userId: req.user._id,
       message: `Your booking for ${service.serviceName} has been placed successfully.`,
       type: "Booking"
     });
 
+    // Email Notification
+    await sendEmail(
+      req.user.email,
+      "Booking Confirmation",
+      `Your booking for ${service.serviceName} has been placed successfully.`
+    );
+
     res.status(201).json(booking);
+
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -64,6 +74,7 @@ const getMyBookings = async (req, res) => {
       .populate("providerId", "name email");
 
     res.status(200).json(bookings);
+
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -82,7 +93,9 @@ const updateBooking = async (req, res) => {
       });
     }
 
-    const booking = await Booking.findById(id);
+    const booking = await Booking.findById(id)
+      .populate("serviceId")
+      .populate("userId");
 
     if (!booking) {
       return res.status(404).json({
@@ -94,7 +107,22 @@ const updateBooking = async (req, res) => {
 
     const updatedBooking = await booking.save();
 
+    // App Notification
+    await Notification.create({
+      userId: booking.userId._id,
+      message: `Your booking for ${booking.serviceId.serviceName} status updated to ${booking.status}.`,
+      type: "Booking"
+    });
+
+    // Email Notification
+    await sendEmail(
+      booking.userId.email,
+      "Booking Status Updated",
+      `Your booking for ${booking.serviceId.serviceName} is now ${booking.status}.`
+    );
+
     res.status(200).json(updatedBooking);
+
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -118,7 +146,14 @@ const deleteBooking = async (req, res) => {
 
     await booking.save();
 
-    // Auto Notification
+    // Email Notification
+    await sendEmail(
+      req.user.email,
+      "Booking Cancelled",
+      `Your booking for ${booking.serviceId.serviceName} has been cancelled successfully.`
+    );
+
+    // App Notification
     await Notification.create({
       userId: req.user._id,
       message: `Your booking for ${booking.serviceId.serviceName} has been cancelled.`,
@@ -128,6 +163,7 @@ const deleteBooking = async (req, res) => {
     res.status(200).json({
       message: "Booking cancelled successfully"
     });
+
   } catch (error) {
     res.status(500).json({
       message: error.message
