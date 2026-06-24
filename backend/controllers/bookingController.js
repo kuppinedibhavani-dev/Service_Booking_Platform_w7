@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 // Create Booking
 const createBooking = async (req, res) => {
   try {
+      console.log("createBooking controller hit");
     const { serviceId, bookingDate, timeSlot } = req.body;
 
     const service = await Service.findById(serviceId);
@@ -47,6 +48,10 @@ const createBooking = async (req, res) => {
       message: `Your booking for ${service.serviceName} has been placed successfully.`,
       type: "Booking"
     });
+
+    console.log("Booking created successfully");
+console.log("User email:", req.user.email);
+console.log("Calling sendEmail...");
 
     // Email Notification
     await sendEmail(
@@ -114,6 +119,10 @@ const updateBooking = async (req, res) => {
       type: "Booking"
     });
 
+    console.log("Updating booking status...");
+console.log("User email:", booking.userId.email);
+console.log("Calling status update email...");
+
     // Email Notification
     await sendEmail(
       booking.userId.email,
@@ -145,6 +154,10 @@ const deleteBooking = async (req, res) => {
     booking.status = "Cancelled";
 
     await booking.save();
+
+    console.log("Cancelling booking...");
+console.log("User email:", req.user.email);
+console.log("Calling cancel email...");
 
     // Email Notification
     await sendEmail(
