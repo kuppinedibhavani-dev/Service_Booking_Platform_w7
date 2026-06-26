@@ -15,7 +15,6 @@ app.use(cors({
   origin:[
       "http://localhost:3000",
       "https://servicebookingplatformw7.vercel.app",
-      "https://service-booking-platform-w7-9zzj.vercel.app/"
    ],
     credentials: true
 }
