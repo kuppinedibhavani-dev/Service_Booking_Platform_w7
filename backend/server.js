@@ -13,7 +13,7 @@ const app = express();
 
 app.use(cors({
   origin:
-    "https://servicebookingplatformw7.vercel.app",
+    "https://service-booking-platform-w7.vercel.app",
     credentials: true
 }
 ));
