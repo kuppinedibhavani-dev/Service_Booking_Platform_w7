@@ -14,7 +14,7 @@ const app = express();
 app.use(cors({
   origin:[
       "http://localhost:3000",
-    "https://service-booking-plat-git-6c5b71-kuppinedibhavani-5221s-projects.vercel.app/"],
+   ],
     credentials: true
 }
 ));
