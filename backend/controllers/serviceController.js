@@ -31,7 +31,7 @@ const getServices = async (req, res) => {
 };
 
 // Get Single Service
-const getSingleService = async (req, res) => {
+const getService = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -130,7 +130,7 @@ const deleteService = async (req, res) => {
 module.exports = {
   createService,
   getServices,
-  getSingleService,
+  getService,
   updateService,
   deleteService
 };

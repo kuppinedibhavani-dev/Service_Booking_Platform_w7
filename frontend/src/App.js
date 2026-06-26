@@ -14,9 +14,10 @@ import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "./components/AdminDashboard";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import Success from "./pages/Success";
+import Dashboard from "./components/Dashboard";
 
 function App() {
   const [darkMode, setDarkMode] = useState(
@@ -113,6 +114,7 @@ function App() {
           element={<Success />}
         />
       </Routes>
+      <Route path="/dashboard" element={<Dashboard />} />
     </Router>
   );
 }

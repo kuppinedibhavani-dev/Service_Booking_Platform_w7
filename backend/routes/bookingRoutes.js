@@ -8,11 +8,18 @@ const {
   deleteBooking
 } = require("../controllers/bookingController");
 
-const { protect } = require("../middleware/authMiddleware");
+const protect = require("../middleware/authMiddleware");
 
+// Create new booking
 router.post("/", protect, createBooking);
+
+// Get logged-in user bookings
 router.get("/mybookings", protect, getMyBookings);
+
+// Update booking status (Admin/Provider)
 router.put("/:id", protect, updateBooking);
-router.delete("/:id", protect, deleteBooking);
+
+// Cancel booking
+router.put("/cancel/:id", protect, deleteBooking);
 
 module.exports = router;

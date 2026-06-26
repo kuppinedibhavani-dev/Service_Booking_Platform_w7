@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const bookingRoutes = require("./routes/bookingRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 
 dotenv.config();
@@ -23,6 +24,7 @@ app.use("/api/services", require("./routes/serviceRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 
 
 app.get("/", (req, res) => {

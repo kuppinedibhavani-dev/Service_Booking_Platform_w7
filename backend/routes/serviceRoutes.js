@@ -4,16 +4,16 @@ const router = express.Router();
 const {
   createService,
   getServices,
-  getSingleService,
+  getService,
   updateService,
   deleteService
 } = require("../controllers/serviceController");
 
-const { protect } = require("../middleware/authMiddleware");
+const protect = require("../middleware/authMiddleware");
 
 router.post("/", protect, createService);
 router.get("/", getServices);
-router.get("/:id", getSingleService);
+router.get("/:id", getService);
 router.put("/:id", protect, updateService);
 router.delete("/:id", protect, deleteService);
 

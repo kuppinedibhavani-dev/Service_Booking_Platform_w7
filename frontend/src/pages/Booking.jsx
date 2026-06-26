@@ -11,6 +11,10 @@ function Booking() {
   const [date, setDate] = useState(new Date());
   const [timeSlot, setTimeSlot] = useState("");
 
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+
   const slots = [
     "10:00 AM",
     "12:00 PM",
@@ -20,8 +24,13 @@ function Booking() {
   ];
 
   const handleBooking = async () => {
-    if (!timeSlot) {
-      alert("Please select a time slot");
+    if (
+      !customerName ||
+      !customerEmail ||
+      !customerPhone ||
+      !timeSlot
+    ) {
+      alert("Please fill all fields");
       return;
     }
 
@@ -29,14 +38,19 @@ function Booking() {
       const response = await API.post("/bookings", {
         serviceId: id,
         bookingDate: date,
-        timeSlot
+        timeSlot,
+        customerName,
+        customerEmail,
+        customerPhone
       });
 
-      alert("Booking successful");
+      alert("Booking created successfully");
 
-      navigate(`/payment/${response.data._id}`);
+      navigate(`/payment/${response.data.booking._id}`);
     } catch (error) {
-      alert(error.response?.data?.message || "Booking failed");
+      alert(
+        error.response?.data?.message || "Booking failed"
+      );
     }
   };
 
@@ -44,6 +58,33 @@ function Booking() {
     <div className="page container">
       <div className="card">
         <h2>Book Your Service</h2>
+
+        <input
+          type="text"
+          placeholder="Enter Name"
+          value={customerName}
+          onChange={(e) =>
+            setCustomerName(e.target.value)
+          }
+        />
+
+        <input
+          type="email"
+          placeholder="Enter Email"
+          value={customerEmail}
+          onChange={(e) =>
+            setCustomerEmail(e.target.value)
+          }
+        />
+
+        <input
+          type="text"
+          placeholder="Enter Phone Number"
+          value={customerPhone}
+          onChange={(e) =>
+            setCustomerPhone(e.target.value)
+          }
+        />
 
         <h3>Select Date</h3>
 
@@ -65,7 +106,7 @@ function Booking() {
                 margin: "10px",
                 background:
                   timeSlot === slot
-                    ? "linear-gradient(135deg, #22c55e, #16a34a)"
+                    ? "green"
                     : ""
               }}
             >
@@ -78,7 +119,7 @@ function Booking() {
           style={{ marginTop: "20px" }}
           onClick={handleBooking}
         >
-          Confirm Booking
+          Proceed to Payment
         </button>
       </div>
     </div>

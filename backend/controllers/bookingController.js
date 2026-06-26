@@ -1,14 +1,34 @@
 const sendEmail = require("../utils/sendEmail");
+const sendSMS = require("../utils/sendSMS");
 const Booking = require("../models/Booking");
 const Service = require("../models/Service");
 const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
 
-// Create Booking
+// CREATE BOOKING
 const createBooking = async (req, res) => {
   try {
-      console.log("createBooking controller hit");
-    const { serviceId, bookingDate, timeSlot } = req.body;
+    const {
+      serviceId,
+      bookingDate,
+      timeSlot,
+      customerName,
+      customerEmail,
+      customerPhone
+    } = req.body;
+
+    if (
+      !serviceId ||
+      !bookingDate ||
+      !timeSlot ||
+      !customerName ||
+      !customerEmail ||
+      !customerPhone
+    ) {
+      return res.status(400).json({
+        message: "All booking details are required"
+      });
+    }
 
     const service = await Service.findById(serviceId);
 
@@ -39,28 +59,43 @@ const createBooking = async (req, res) => {
       providerId: service.providerId,
       bookingDate,
       timeSlot,
-      totalAmount: service.price
+      totalAmount: service.price,
+      customerName,
+      customerEmail,
+      customerPhone,
+      paymentStatus: "Pending"
     });
 
-    // App Notification
+    // App notification
     await Notification.create({
       userId: req.user._id,
-      message: `Your booking for ${service.serviceName} has been placed successfully.`,
+      message: `Booking placed for ${service.serviceName}`,
       type: "Booking"
     });
 
-    console.log("Booking created successfully");
-console.log("User email:", req.user.email);
-console.log("Calling sendEmail...");
-
-    // Email Notification
+    // Email notification
     await sendEmail(
-      req.user.email,
+      customerEmail,
       "Booking Confirmation",
       `Your booking for ${service.serviceName} has been placed successfully.`
     );
 
-    res.status(201).json(booking);
+    booking.emailSent = true;
+
+    // SMS notification
+    await sendSMS(
+      customerPhone,
+      `Your booking for ${service.serviceName} has been placed successfully.`
+    );
+
+    booking.smsSent = true;
+
+    await booking.save();
+
+    res.status(201).json({
+      success: true,
+      booking
+    });
 
   } catch (error) {
     res.status(500).json({
@@ -69,7 +104,7 @@ console.log("Calling sendEmail...");
   }
 };
 
-// Get My Bookings
+// GET USER BOOKINGS
 const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
@@ -78,7 +113,10 @@ const getMyBookings = async (req, res) => {
       .populate("serviceId")
       .populate("providerId", "name email");
 
-    res.status(200).json(bookings);
+    res.status(200).json({
+      success: true,
+      bookings
+    });
 
   } catch (error) {
     res.status(500).json({
@@ -87,14 +125,15 @@ const getMyBookings = async (req, res) => {
   }
 };
 
-// Update Booking Status
+// UPDATE BOOKING STATUS
 const updateBooking = async (req, res) => {
   try {
     const { id } = req.params;
+    const { status, paymentStatus } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        message: "Invalid Booking ID"
+        message: "Invalid booking ID"
       });
     }
 
@@ -108,29 +147,41 @@ const updateBooking = async (req, res) => {
       });
     }
 
-    booking.status = req.body.status || booking.status;
+    if (status) booking.status = status;
+    if (paymentStatus) booking.paymentStatus = paymentStatus;
 
-    const updatedBooking = await booking.save();
+    await booking.save();
 
-    // App Notification
+    // App notification
     await Notification.create({
       userId: booking.userId._id,
-      message: `Your booking for ${booking.serviceId.serviceName} status updated to ${booking.status}.`,
+      message: `Booking status updated to ${booking.status}`,
       type: "Booking"
     });
 
-    console.log("Updating booking status...");
-console.log("User email:", booking.userId.email);
-console.log("Calling status update email...");
-
-    // Email Notification
+    // Email notification
     await sendEmail(
-      booking.userId.email,
+      booking.customerEmail,
       "Booking Status Updated",
       `Your booking for ${booking.serviceId.serviceName} is now ${booking.status}.`
     );
 
-    res.status(200).json(updatedBooking);
+    booking.emailSent = true;
+
+    // SMS notification
+    await sendSMS(
+      booking.customerPhone,
+      `Your booking status for ${booking.serviceId.serviceName} is now ${booking.status}.`
+    );
+
+    booking.smsSent = true;
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      booking
+    });
 
   } catch (error) {
     res.status(500).json({
@@ -139,9 +190,11 @@ console.log("Calling status update email...");
   }
 };
 
-// Cancel Booking
+// CANCEL BOOKING
 const deleteBooking = async (req, res) => {
   try {
+    const { cancellationReason } = req.body;
+
     const booking = await Booking.findById(req.params.id)
       .populate("serviceId");
 
@@ -152,28 +205,39 @@ const deleteBooking = async (req, res) => {
     }
 
     booking.status = "Cancelled";
+    booking.cancellationReason =
+      cancellationReason || "No reason provided";
 
     await booking.save();
 
-    console.log("Cancelling booking...");
-console.log("User email:", req.user.email);
-console.log("Calling cancel email...");
-
-    // Email Notification
+    // Email notification
     await sendEmail(
-      req.user.email,
+      booking.customerEmail,
       "Booking Cancelled",
-      `Your booking for ${booking.serviceId.serviceName} has been cancelled successfully.`
+      `Your booking for ${booking.serviceId.serviceName} has been cancelled.`
     );
 
-    // App Notification
+    booking.emailSent = true;
+
+    // SMS notification
+    await sendSMS(
+      booking.customerPhone,
+      `Your booking for ${booking.serviceId.serviceName} has been cancelled.`
+    );
+
+    booking.smsSent = true;
+
+    await booking.save();
+
+    // App notification
     await Notification.create({
-      userId: req.user._id,
-      message: `Your booking for ${booking.serviceId.serviceName} has been cancelled.`,
+      userId: booking.userId,
+      message: `Booking cancelled for ${booking.serviceId.serviceName}`,
       type: "Booking"
     });
 
     res.status(200).json({
+      success: true,
       message: "Booking cancelled successfully"
     });
 
