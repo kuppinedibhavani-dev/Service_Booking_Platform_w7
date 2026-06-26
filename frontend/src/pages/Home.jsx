@@ -81,9 +81,9 @@ function Home() {
             <p>{service.description}</p>
             <p><strong>Price:</strong> ₹{service.price}</p>
 
-            <Link to={`/service/${service._id}`}>
-              <button>View Details</button>
-            </Link>
+            <Link to={`/booking/${service._id}`}>
+  <button>Book Now</button>
+</Link>
           </div>
         ))}
       </div>
