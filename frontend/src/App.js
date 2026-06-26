@@ -6,8 +6,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
-import Dashboard from "./components/Dashboard";
-import AdminDashboard from "./components/AdminDashboard";
+import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 
 function App() {
