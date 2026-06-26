@@ -4,7 +4,24 @@ const mongoose = require("mongoose");
 // Create Service
 const createService = async (req, res) => {
   try {
-    const service = await Service.create(req.body);
+    const {
+      serviceName,
+      description,
+      category,
+      price,
+      duration,
+      image
+    } = req.body;
+
+    const service = await Service.create({
+      serviceName,
+      description,
+      category,
+      price,
+      duration,
+      image,
+      providerId: req.user._id
+    });
 
     res.status(201).json(service);
   } catch (error) {
