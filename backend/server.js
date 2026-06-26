@@ -11,14 +11,9 @@ connectDB();
 
 const app = express();
 
-app.use(cors({
-  origin:[
-      "http://localhost:3000",
-      "https://servicebookingplatformw7.vercel.app",
-   ],
-    credentials: true
-}
-));
+const cors = require("cors");
+
+app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", require("./routes/authRoutes"));
