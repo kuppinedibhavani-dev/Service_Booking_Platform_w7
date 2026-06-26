@@ -38,6 +38,15 @@ const createBooking = async (req, res) => {
       });
     }
 
+    console.log("Service found:", service);
+    console.log("ProviderId:", service.providerId);
+
+    if (!service.providerId) {
+      return res.status(400).json({
+        message: "Service provider not found. Please update the service."
+      });
+    }
+
     // Check if slot already booked
     const existingBooking = await Booking.findOne({
       serviceId,
@@ -66,14 +75,14 @@ const createBooking = async (req, res) => {
       paymentStatus: "Pending"
     });
 
-    // App notification
+    // Notification
     await Notification.create({
       userId: req.user._id,
       message: `Booking placed for ${service.serviceName}`,
       type: "Booking"
     });
 
-    // Email notification
+    // Email
     await sendEmail(
       customerEmail,
       "Booking Confirmation",
@@ -82,7 +91,7 @@ const createBooking = async (req, res) => {
 
     booking.emailSent = true;
 
-    // SMS notification
+    // SMS
     await sendSMS(
       customerPhone,
       `Your booking for ${service.serviceName} has been placed successfully.`
@@ -98,6 +107,7 @@ const createBooking = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: error.message
     });
@@ -152,14 +162,12 @@ const updateBooking = async (req, res) => {
 
     await booking.save();
 
-    // App notification
     await Notification.create({
       userId: booking.userId._id,
       message: `Booking status updated to ${booking.status}`,
       type: "Booking"
     });
 
-    // Email notification
     await sendEmail(
       booking.customerEmail,
       "Booking Status Updated",
@@ -168,7 +176,6 @@ const updateBooking = async (req, res) => {
 
     booking.emailSent = true;
 
-    // SMS notification
     await sendSMS(
       booking.customerPhone,
       `Your booking status for ${booking.serviceId.serviceName} is now ${booking.status}.`
@@ -210,7 +217,6 @@ const deleteBooking = async (req, res) => {
 
     await booking.save();
 
-    // Email notification
     await sendEmail(
       booking.customerEmail,
       "Booking Cancelled",
@@ -219,7 +225,6 @@ const deleteBooking = async (req, res) => {
 
     booking.emailSent = true;
 
-    // SMS notification
     await sendSMS(
       booking.customerPhone,
       `Your booking for ${booking.serviceId.serviceName} has been cancelled.`
@@ -229,7 +234,6 @@ const deleteBooking = async (req, res) => {
 
     await booking.save();
 
-    // App notification
     await Notification.create({
       userId: booking.userId,
       message: `Booking cancelled for ${booking.serviceId.serviceName}`,
