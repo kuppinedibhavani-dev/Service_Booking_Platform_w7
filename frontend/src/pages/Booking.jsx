@@ -10,10 +10,7 @@ function Booking() {
 
   const [date, setDate] = useState(new Date());
   const [timeSlot, setTimeSlot] = useState("");
-
-  const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const slots = [
     "10:00 AM",
@@ -23,34 +20,70 @@ function Booking() {
     "6:00 PM"
   ];
 
+  const amount = 500;
+
   const handleBooking = async () => {
-    if (
-      !customerName ||
-      !customerEmail ||
-      !customerPhone ||
-      !timeSlot
-    ) {
-      alert("Please fill all fields");
+    if (!timeSlot) {
+      alert("Please select a time slot");
       return;
     }
 
     try {
-      const response = await API.post("/bookings", {
-        serviceId: id,
-        bookingDate: date,
-        timeSlot,
-        customerName,
-        customerEmail,
-        customerPhone
+      setLoading(true);
+
+      // Create booking
+      const bookingResponse = await API.post("/bookings", {
+        service: id,
+        date: date.toDateString(),
+        time: timeSlot,
+        amount
       });
 
-      alert("Booking created successfully");
+      const booking = bookingResponse.data;
 
-      navigate(`/payment/${response.data.booking._id}`);
+      // Create payment order
+      const orderResponse = await API.post("/payments/create-order", {
+        amount
+      });
+
+      const order = orderResponse.data;
+
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Service Booking Platform",
+        description: "Service Payment",
+        order_id: order.id,
+
+        handler: async function (response) {
+          try {
+            await API.post("/payments/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              bookingId: booking._id
+            });
+
+            alert("Payment successful");
+            navigate("/success");
+          } catch (error) {
+            alert("Payment verification failed");
+          }
+        },
+
+        theme: {
+          color: "#3399cc"
+        }
+      };
+
+      const razor = new window.Razorpay(options);
+      razor.open();
+
     } catch (error) {
-      alert(
-        error.response?.data?.message || "Booking failed"
-      );
+      alert(error.response?.data?.message || "Booking failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,33 +91,6 @@ function Booking() {
     <div className="page container">
       <div className="card">
         <h2>Book Your Service</h2>
-
-        <input
-          type="text"
-          placeholder="Enter Name"
-          value={customerName}
-          onChange={(e) =>
-            setCustomerName(e.target.value)
-          }
-        />
-
-        <input
-          type="email"
-          placeholder="Enter Email"
-          value={customerEmail}
-          onChange={(e) =>
-            setCustomerEmail(e.target.value)
-          }
-        />
-
-        <input
-          type="text"
-          placeholder="Enter Phone Number"
-          value={customerPhone}
-          onChange={(e) =>
-            setCustomerPhone(e.target.value)
-          }
-        />
 
         <h3>Select Date</h3>
 
@@ -105,9 +111,7 @@ function Booking() {
               style={{
                 margin: "10px",
                 background:
-                  timeSlot === slot
-                    ? "green"
-                    : ""
+                  timeSlot === slot ? "green" : ""
               }}
             >
               {slot}
@@ -115,11 +119,16 @@ function Booking() {
           ))}
         </div>
 
+        <h3 style={{ marginTop: "20px" }}>
+          Amount: ₹{amount}
+        </h3>
+
         <button
           style={{ marginTop: "20px" }}
           onClick={handleBooking}
+          disabled={loading}
         >
-          Proceed to Payment
+          {loading ? "Processing..." : "Book & Pay"}
         </button>
       </div>
     </div>

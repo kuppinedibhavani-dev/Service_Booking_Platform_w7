@@ -3,64 +3,47 @@ const User = require("../models/User");
 const sendEmail = require("../utils/sendEmail");
 const sendSMS = require("../utils/sendSMS");
 
-// Create Booking
-const createBooking = async (req, res) => {
-  const { service, date, time, address } = req.body;
-
+// Create booking
+exports.createBooking = async (req, res) => {
   try {
-    // Create booking
+    const { service, date, time, amount } = req.body;
+
     const booking = await Booking.create({
       user: req.user.id,
       service,
       date,
       time,
-      address
+      amount
     });
 
-    // Get user details
     const user = await User.findById(req.user.id);
 
-    // Send Email
-    try {
-      await sendEmail(
-        user.email,
-        "Booking Confirmation",
-        `Your booking has been confirmed for ${date} at ${time}.`
-      );
-    } catch (emailError) {
-      console.log("Email error:", emailError.message);
-    }
+    await sendEmail(
+      user.email,
+      "Booking Created",
+      "Your booking has been created successfully."
+    );
 
-    // Send SMS
-    try {
-      await sendSMS(
-        "+919390402526",
-        `Your booking is confirmed for ${date} at ${time}`
-      );
-    } catch (smsError) {
-      console.log("SMS error:", smsError.message);
+    if (user.phone) {
+      await sendSMS(user.phone, "Your booking is confirmed.");
     }
 
     res.status(201).json(booking);
-
   } catch (error) {
-    console.log(error.message);
-
     res.status(500).json({
       message: error.message
     });
   }
 };
 
-// Get Logged-in User Bookings
-const getMyBookings = async (req, res) => {
+// Get my bookings
+exports.getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
       user: req.user.id
     }).populate("service");
 
-    res.status(200).json(bookings);
-
+    res.json(bookings);
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -68,15 +51,14 @@ const getMyBookings = async (req, res) => {
   }
 };
 
-// Get All Bookings (Admin)
-const getAllBookings = async (req, res) => {
+// Get all bookings (admin)
+exports.getAllBookings = async (req, res) => {
   try {
     const bookings = await Booking.find()
       .populate("user")
       .populate("service");
 
-    res.status(200).json(bookings);
-
+    res.json(bookings);
   } catch (error) {
     res.status(500).json({
       message: error.message
@@ -84,36 +66,19 @@ const getAllBookings = async (req, res) => {
   }
 };
 
-// Update Booking Status
-const updateBookingStatus = async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
+// Update booking status (admin)
+exports.updateBookingStatus = async (req, res) => {
   try {
-    const booking = await Booking.findById(id);
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
 
-    if (!booking) {
-      return res.status(404).json({
-        message: "Booking not found"
-      });
-    }
-
-    booking.status = status;
-
-    await booking.save();
-
-    res.status(200).json(booking);
-
+    res.json(booking);
   } catch (error) {
     res.status(500).json({
       message: error.message
     });
   }
-};
-
-module.exports = {
-  createBooking,
-  getMyBookings,
-  getAllBookings,
-  updateBookingStatus
 };

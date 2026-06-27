@@ -1,19 +1,19 @@
 const twilio = require("twilio");
 
 const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
 
-const sendSMS = async (to, message) => {
+const sendSMS = async (to, body) => {
   try {
-    const sms = await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
+    await client.messages.create({
+      body,
+      from: process.env.TWILIO_PHONE,
       to
     });
 
-    console.log("SMS sent:", sms.sid);
+    console.log("SMS sent successfully");
   } catch (error) {
     console.log("SMS error:", error.message);
   }

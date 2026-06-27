@@ -4,6 +4,7 @@ import API from "../services/api";
 function AdminDashboard() {
   const [services, setServices] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchServices();
@@ -22,9 +23,11 @@ function AdminDashboard() {
   const fetchBookings = async () => {
     try {
       const res = await API.get("/admin/bookings");
-      setBookings(res.data.bookings);
+      setBookings(res.data);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,13 +40,10 @@ function AdminDashboard() {
     }
   };
 
-  const updateBookingStatus = async (
-    id,
-    status
-  ) => {
+  const updateBookingStatus = async (id, bookingStatus) => {
     try {
-      await API.put(`/bookings/${id}`, {
-        status
+      await API.put(`/admin/bookings/${id}`, {
+        bookingStatus
       });
 
       fetchBookings();
@@ -53,15 +53,8 @@ function AdminDashboard() {
   };
 
   const totalRevenue = bookings
-    .filter(
-      (booking) =>
-        booking.paymentStatus === "Paid"
-    )
-    .reduce(
-      (sum, booking) =>
-        sum + booking.totalAmount,
-      0
-    );
+    .filter((booking) => booking.paymentStatus === "paid")
+    .reduce((sum, booking) => sum + booking.amount, 0);
 
   return (
     <div className="page container">
@@ -69,86 +62,109 @@ function AdminDashboard() {
 
       <h3>Total Revenue: ₹{totalRevenue}</h3>
 
-      <h3>Manage Services</h3>
+      {/* Manage Services */}
+      <h3 style={{ marginTop: "20px" }}>Manage Services</h3>
 
-      {services.map((service) => (
-        <div
-          key={service._id}
-          className="card"
-        >
-          <h4>{service.serviceName}</h4>
-
-          <button
-            onClick={() =>
-              deleteService(service._id)
-            }
+      {services.length === 0 ? (
+        <p>No services found</p>
+      ) : (
+        services.map((service) => (
+          <div
+            key={service._id}
+            className="card"
+            style={{ marginBottom: "20px" }}
           >
-            Delete Service
-          </button>
-        </div>
-      ))}
+            <h4>{service.name}</h4>
 
-      <h3 style={{ marginTop: "30px" }}>
-        All Bookings
-      </h3>
+            <button
+              onClick={() => deleteService(service._id)}
+            >
+              Delete Service
+            </button>
+          </div>
+        ))
+      )}
 
-      {bookings.map((booking) => (
-        <div
-          key={booking._id}
-          className="card"
-        >
-          <h4>
-            {booking.serviceId?.serviceName}
-          </h4>
+      {/* Manage Bookings */}
+      <h3 style={{ marginTop: "30px" }}>All Bookings</h3>
 
-          <p>
-            Customer: {booking.customerName}
-          </p>
-
-          <p>Status: {booking.status}</p>
-
-          <p>
-            Payment: {booking.paymentStatus}
-          </p>
-
-          <p>
-            Amount: ₹{booking.totalAmount}
-          </p>
-
-          <button
-            onClick={() =>
-              updateBookingStatus(
-                booking._id,
-                "Confirmed"
-              )
-            }
+      {loading ? (
+        <p>Loading...</p>
+      ) : bookings.length === 0 ? (
+        <p>No bookings found</p>
+      ) : (
+        bookings.map((booking) => (
+          <div
+            key={booking._id}
+            className="card"
+            style={{ marginBottom: "20px" }}
           >
-            Confirm
-          </button>
+            <h4>
+              {booking.service?.name || "Service"}
+            </h4>
 
-          <button
-            onClick={() =>
-              updateBookingStatus(
-                booking._id,
-                "Completed"
-              )
-            }
-          >
-            Complete
-          </button>
+            <p>
+              <strong>Customer:</strong>{" "}
+              {booking.user?.name || "User"}
+            </p>
 
-          <button
-            onClick={() =>
-              updateBookingStatus(
-                booking._id,
-                "Cancelled"
-              )
-            }
-          >
-            Cancel
-          </button>
-        </div>
-      ))}
+            <p>
+              <strong>Date:</strong> {booking.date}
+            </p>
+
+            <p>
+              <strong>Time:</strong> {booking.time}
+            </p>
+
+            <p>
+              <strong>Booking Status:</strong>{" "}
+              {booking.bookingStatus}
+            </p>
+
+            <p>
+              <strong>Payment Status:</strong>{" "}
+              {booking.paymentStatus}
+            </p>
+
+            <p>
+              <strong>Amount:</strong> ₹{booking.amount}
+            </p>
+
+            <button
+              onClick={() =>
+                updateBookingStatus(
+                  booking._id,
+                  "confirmed"
+                )
+              }
+            >
+              Confirm
+            </button>
+
+            <button
+              onClick={() =>
+                updateBookingStatus(
+                  booking._id,
+                  "completed"
+                )
+              }
+            >
+              Complete
+            </button>
+
+            <button
+              onClick={() =>
+                updateBookingStatus(
+                  booking._id,
+                  "cancelled"
+                )
+              }
+            >
+              Cancel
+            </button>
+          </div>
+        ))
+      )}
     </div>
   );
 }

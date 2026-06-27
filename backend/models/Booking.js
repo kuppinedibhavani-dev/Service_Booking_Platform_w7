@@ -2,89 +2,37 @@ const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema(
   {
-    userId: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
-
-    serviceId: {
+    service: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
       required: true
     },
-
-    providerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
-
-    bookingDate: {
-      type: Date,
-      required: true
-    },
-
-    timeSlot: {
+    date: {
       type: String,
       required: true
     },
-
-    status: {
+    time: {
       type: String,
-      enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
-      default: "Pending"
+      required: true
     },
-
-    totalAmount: {
+    amount: {
       type: Number,
       required: true
     },
-
     paymentStatus: {
       type: String,
-      enum: ["Pending", "Paid", "Failed"],
-      default: "Pending"
+      enum: ["pending", "paid", "failed"],
+      default: "pending"
     },
-
-    paymentId: {
+    bookingStatus: {
       type: String,
-      default: null
-    },
-
-    transactionId: {
-      type: String,
-      default: null
-    },
-
-    cancellationReason: {
-      type: String,
-      default: ""
-    },
-
-    customerName: {
-      type: String,
-      required: true
-    },
-
-    customerEmail: {
-      type: String,
-      required: true
-    },
-
-    customerPhone: {
-      type: String,
-      required: true
-    },
-
-    emailSent: {
-      type: Boolean,
-      default: false
-    },
-
-    smsSent: {
-      type: Boolean,
-      default: false
+      enum: ["pending", "confirmed", "completed", "cancelled"],
+      default: "pending"
     }
   },
   { timestamps: true }
