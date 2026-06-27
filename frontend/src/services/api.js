@@ -3,7 +3,7 @@ import axios from "axios";
 const API = axios.create({
   baseURL:
     process.env.REACT_APP_API_URL ||
-    "https://service-booking-platform-w7-3.onrender.com/api",
+    "https://service-booking-platform-w7-4.onrender.com",
   headers: {
     "Content-Type": "application/json"
   }
