@@ -3,17 +3,21 @@ const Notification = require("../models/Notification");
 // Create Notification
 const createNotification = async (req, res) => {
   try {
-    const { userId, message, type } = req.body;
+    const { message, type } = req.body;
 
     const notification = await Notification.create({
-      userId,
+      userId: req.user._id, // authenticated user
       message,
       type
     });
 
-    res.status(201).json(notification);
+    res.status(201).json({
+      success: true,
+      notification
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message
     });
   }
@@ -24,34 +28,46 @@ const getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({
       userId: req.user._id
-    });
+    }).sort({ createdAt: -1 });
 
-    res.status(200).json(notifications);
+    res.status(200).json({
+      success: true,
+      count: notifications.length,
+      notifications
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message
     });
   }
 };
 
-// Mark as Read
+// Mark Notification as Read
 const markAsRead = async (req, res) => {
   try {
-    const notification = await Notification.findById(req.params.id);
+    const notification = await Notification.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    });
 
     if (!notification) {
       return res.status(404).json({
+        success: false,
         message: "Notification not found"
       });
     }
 
     notification.isRead = true;
-
     await notification.save();
 
-    res.status(200).json(notification);
+    res.status(200).json({
+      success: true,
+      notification
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message
     });
   }
@@ -60,5 +76,6 @@ const markAsRead = async (req, res) => {
 module.exports = {
   createNotification,
   getNotifications,
-  markAsRead
+  markAsRead,
+  deleteNotification
 };

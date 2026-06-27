@@ -1,132 +1,65 @@
+const Booking = require("../models/Booking");
+const User = require("../models/User");
 const sendEmail = require("../utils/sendEmail");
 const sendSMS = require("../utils/sendSMS");
-const Booking = require("../models/Booking");
-const Service = require("../models/Service");
-const Notification = require("../models/Notification");
-const mongoose = require("mongoose");
 
-// CREATE BOOKING
+// Create Booking
 const createBooking = async (req, res) => {
+  const { service, date, time, address } = req.body;
+
   try {
-    const {
-      serviceId,
-      bookingDate,
-      timeSlot,
-      customerName,
-      customerEmail,
-      customerPhone
-    } = req.body;
-
-    if (
-      !serviceId ||
-      !bookingDate ||
-      !timeSlot ||
-      !customerName ||
-      !customerEmail ||
-      !customerPhone
-    ) {
-      return res.status(400).json({
-        message: "All booking details are required"
-      });
-    }
-
-    const service = await Service.findById(serviceId);
-
-    if (!service) {
-      return res.status(404).json({
-        message: "Service not found"
-      });
-    }
-
-    console.log("Service found:", service);
-    console.log("ProviderId:", service.providerId);
-
-    if (!service.providerId) {
-      return res.status(400).json({
-        message: "Service provider not found. Please update the service."
-      });
-    }
-
-    // Check if slot already booked
-    const existingBooking = await Booking.findOne({
-      serviceId,
-      bookingDate,
-      timeSlot,
-      status: { $ne: "Cancelled" }
-    });
-
-    if (existingBooking) {
-      return res.status(400).json({
-        message: "This slot is already booked"
-      });
-    }
-
     // Create booking
     const booking = await Booking.create({
-      userId: req.user._id,
-      serviceId,
-      providerId: service.providerId,
-      bookingDate,
-      timeSlot,
-      totalAmount: service.price,
-      customerName,
-      customerEmail,
-      customerPhone,
-      paymentStatus: "Pending"
+      user: req.user.id,
+      service,
+      date,
+      time,
+      address
     });
 
-    // Notification
-    await Notification.create({
-      userId: req.user._id,
-      message: `Booking placed for ${service.serviceName}`,
-      type: "Booking"
-    });
+    // Get user details
+    const user = await User.findById(req.user.id);
 
-    // Email
-    await sendEmail(
-      customerEmail,
-      "Booking Confirmation",
-      `Your booking for ${service.serviceName} has been placed successfully.`
-    );
+    // Send Email
+    try {
+      await sendEmail(
+        user.email,
+        "Booking Confirmation",
+        `Your booking has been confirmed for ${date} at ${time}.`
+      );
+    } catch (emailError) {
+      console.log("Email error:", emailError.message);
+    }
 
-    booking.emailSent = true;
+    // Send SMS
+    try {
+      await sendSMS(
+        "+919390402526",
+        `Your booking is confirmed for ${date} at ${time}`
+      );
+    } catch (smsError) {
+      console.log("SMS error:", smsError.message);
+    }
 
-    // SMS
-    await sendSMS(
-      customerPhone,
-      `Your booking for ${service.serviceName} has been placed successfully.`
-    );
-
-    booking.smsSent = true;
-
-    await booking.save();
-
-    res.status(201).json({
-      success: true,
-      booking
-    });
+    res.status(201).json(booking);
 
   } catch (error) {
-    console.log(error);
+    console.log(error.message);
+
     res.status(500).json({
       message: error.message
     });
   }
 };
 
-// GET USER BOOKINGS
+// Get Logged-in User Bookings
 const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
-      userId: req.user._id
-    })
-      .populate("serviceId")
-      .populate("providerId", "name email");
+      user: req.user.id
+    }).populate("service");
 
-    res.status(200).json({
-      success: true,
-      bookings
-    });
+    res.status(200).json(bookings);
 
   } catch (error) {
     res.status(500).json({
@@ -135,60 +68,14 @@ const getMyBookings = async (req, res) => {
   }
 };
 
-// UPDATE BOOKING STATUS
-const updateBooking = async (req, res) => {
+// Get All Bookings (Admin)
+const getAllBookings = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, paymentStatus } = req.body;
+    const bookings = await Booking.find()
+      .populate("user")
+      .populate("service");
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: "Invalid booking ID"
-      });
-    }
-
-    const booking = await Booking.findById(id)
-      .populate("serviceId")
-      .populate("userId");
-
-    if (!booking) {
-      return res.status(404).json({
-        message: "Booking not found"
-      });
-    }
-
-    if (status) booking.status = status;
-    if (paymentStatus) booking.paymentStatus = paymentStatus;
-
-    await booking.save();
-
-    await Notification.create({
-      userId: booking.userId._id,
-      message: `Booking status updated to ${booking.status}`,
-      type: "Booking"
-    });
-
-    await sendEmail(
-      booking.customerEmail,
-      "Booking Status Updated",
-      `Your booking for ${booking.serviceId.serviceName} is now ${booking.status}.`
-    );
-
-    booking.emailSent = true;
-
-    await sendSMS(
-      booking.customerPhone,
-      `Your booking status for ${booking.serviceId.serviceName} is now ${booking.status}.`
-    );
-
-    booking.smsSent = true;
-
-    await booking.save();
-
-    res.status(200).json({
-      success: true,
-      booking
-    });
+    res.status(200).json(bookings);
 
   } catch (error) {
     res.status(500).json({
@@ -197,13 +84,13 @@ const updateBooking = async (req, res) => {
   }
 };
 
-// CANCEL BOOKING
-const deleteBooking = async (req, res) => {
-  try {
-    const { cancellationReason } = req.body;
+// Update Booking Status
+const updateBookingStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
 
-    const booking = await Booking.findById(req.params.id)
-      .populate("serviceId");
+  try {
+    const booking = await Booking.findById(id);
 
     if (!booking) {
       return res.status(404).json({
@@ -211,39 +98,11 @@ const deleteBooking = async (req, res) => {
       });
     }
 
-    booking.status = "Cancelled";
-    booking.cancellationReason =
-      cancellationReason || "No reason provided";
+    booking.status = status;
 
     await booking.save();
 
-    await sendEmail(
-      booking.customerEmail,
-      "Booking Cancelled",
-      `Your booking for ${booking.serviceId.serviceName} has been cancelled.`
-    );
-
-    booking.emailSent = true;
-
-    await sendSMS(
-      booking.customerPhone,
-      `Your booking for ${booking.serviceId.serviceName} has been cancelled.`
-    );
-
-    booking.smsSent = true;
-
-    await booking.save();
-
-    await Notification.create({
-      userId: booking.userId,
-      message: `Booking cancelled for ${booking.serviceId.serviceName}`,
-      type: "Booking"
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Booking cancelled successfully"
-    });
+    res.status(200).json(booking);
 
   } catch (error) {
     res.status(500).json({
@@ -255,6 +114,6 @@ const deleteBooking = async (req, res) => {
 module.exports = {
   createBooking,
   getMyBookings,
-  updateBooking,
-  deleteBooking
+  getAllBookings,
+  updateBookingStatus
 };
